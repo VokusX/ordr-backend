@@ -1,0 +1,15 @@
+runtime: python27
+api_version: 1
+threadsafe: true
+
+handlers:
+- url: /search/.*
+  script: lib.apps.search.app
+- url: /register/.*
+  script: lib.apps.register.app
+- url: /test/.*
+  script: lib.apps.test.app
+
+libraries:
+- name: jinja2
+  version: latest
