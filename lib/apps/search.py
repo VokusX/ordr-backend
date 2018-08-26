@@ -5,7 +5,8 @@ import logging
 import webapp2
 
 from ..supports.main import Handler
-from ..supports.tables import Restaurant, Item, Category
+from ..supports.tables import Restaurant, Item, ItemCategory
+from ..supports.utils import sanitize_items_data
 
 static_lication = "/search"
 
@@ -21,20 +22,9 @@ def sanitaize_restaurant_data(data):
             "lon": data.lon,
             "lat": data.lat,
         },
-        # "hours": [
-            
-        # ],
+        "hours": [],
         # "checkInAllowed": True
-        # "pictures": []
-    }
-
-def sanitize_items_data(data):
-    return {
-        "name": data.name,
-        "price": data.price
-        "categoryUUID": data.categoryUuid
-        "description": data.description
-        # "pictures":
+        "pictures": data.pictures["pictures"]
     }
 
 def sanatize_categories(data):
@@ -88,18 +78,32 @@ class Menu(Handler):
 
         items = [sanitize_items_data(x) for x in items]
 
-        categories = Category.query(Category.restaurantUuid == data["uuid"]).fetch
+        categories = ItemCategory.query(ItemCategory.restaurantUuid == data["uuid"]).fetch()
 
         categories = [sanatize_categories(x) for x in categories]
 
-        self.respondToJson({
-            "items": items,
-            "categories": categories
-        })
+        result = {
+            "other": []
+        }
 
+        # Create the categories
+        for cat in categories:
+            result[cat["uuid"]] = []
 
+        # Fill in the categories with the items
+        for item in items:
+            if (item.get("categoryUUID")):
+                result[str(item.get("categoryUUID"))].append(item)
+            else:
+                result["other"].append(item)
+
+        for cat in categories:
+            result[cat["name"]] = result.pop(cat["uuid"])
+
+        self.respondToJson(result)
 
 app = webapp2.WSGIApplication([
     (static_lication + "/findNearby", FindNearby),
-    (static_lication + "/details", Details)
+    (static_lication + "/details", Details),
+    (static_lication + "/menu", Menu)
 ], debug=True)
